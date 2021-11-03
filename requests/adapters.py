@@ -28,6 +28,7 @@ from urllib3.exceptions import ReadTimeoutError
 from urllib3.exceptions import SSLError as _SSLError
 from urllib3.exceptions import ResponseError
 from urllib3.exceptions import LocationValueError
+from urllib3.util.ssl_ import create_urllib3_context
 
 from .models import Response
 from .compat import urlparse, basestring
@@ -51,6 +52,7 @@ DEFAULT_POOLBLOCK = False
 DEFAULT_POOLSIZE = 10
 DEFAULT_RETRIES = 0
 DEFAULT_POOL_TIMEOUT = None
+DEFAULT_SSL_CONTEXT = create_urllib3_context()
 
 
 class BaseAdapter(object):
@@ -109,11 +111,11 @@ class HTTPAdapter(BaseAdapter):
       >>> s.mount('http://', a)
     """
     __attrs__ = ['max_retries', 'config', '_pool_connections', '_pool_maxsize',
-                 '_pool_block']
+                 '_pool_block', '_context']
 
     def __init__(self, pool_connections=DEFAULT_POOLSIZE,
                  pool_maxsize=DEFAULT_POOLSIZE, max_retries=DEFAULT_RETRIES,
-                 pool_block=DEFAULT_POOLBLOCK):
+                 pool_block=DEFAULT_POOLBLOCK, context=DEFAULT_SSL_CONTEXT):
         if max_retries == DEFAULT_RETRIES:
             self.max_retries = Retry(0, read=False)
         else:
@@ -126,8 +128,9 @@ class HTTPAdapter(BaseAdapter):
         self._pool_connections = pool_connections
         self._pool_maxsize = pool_maxsize
         self._pool_block = pool_block
+        self._context = context
 
-        self.init_poolmanager(pool_connections, pool_maxsize, block=pool_block)
+        self.init_poolmanager(pool_connections, pool_maxsize, block=pool_block, ssl_context=context)
 
     def __getstate__(self):
         return {attr: getattr(self, attr, None) for attr in self.__attrs__}

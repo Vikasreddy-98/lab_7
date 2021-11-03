@@ -35,6 +35,7 @@ from requests.compat import MutableMapping
 from .compat import StringIO, u
 from .utils import override_environ
 from urllib3.util import Timeout as Urllib3Timeout
+from urllib3.util.ssl_ import create_urllib3_context
 
 # Requests to this URL should always fail with a connection timeout (nothing
 # listening on that port)
@@ -2576,3 +2577,31 @@ class TestPreparingURLs(object):
         r = requests.get(httpbin('bytes/20'))
         with pytest.raises(requests.exceptions.JSONDecodeError):
             r.json()
+
+def test_no_ssl_context_http():
+    """Assert adapter does not create SSLContext for HTTP request"""
+    adapter = requests.adapters.HTTPAdapter()
+    conn = adapter.get_connection('http://example.com')
+    assert 'ssl_context' not in conn.conn_kw
+
+def get_connection_context(adapter):
+    """Easily get SSLContext for new connection pool"""
+    return adapter.get_connection('https://example.com').conn_kw['ssl_context']
+
+def test_ssl_context_reused():
+    """Assert adapter reuses SSLContext for same verify and cert"""
+    adapter = requests.adapters.HTTPAdapter()
+    ctx1 = get_connection_context(adapter)
+    ctx2 = get_connection_context(adapter)
+    assert ctx1 is ctx2
+
+def test_ssl_context_unique_by_new_adapter():
+    """Assert adapter creates new SSLContext with different context"""
+    adapter = requests.adapters.HTTPAdapter(context = create_urllib3_context())
+    ctx1 = get_connection_context(adapter)
+    adapter2 = requests.adapters.HTTPAdapter()
+    ctx2 = get_connection_context(adapter2)
+    assert ctx1 is not ctx2
+    adapter3 = requests.adapters.HTTPAdapter(context = create_urllib3_context(ssl_version=2))
+    ctx3 = get_connection_context(adapter3)
+    assert ctx2 is not ctx3
