@@ -1,6 +1,7 @@
 """
 requests.auth
 ~~~~~~~~~~~~~
+
 This module contains the authentication handlers for Requests.
 """
 
@@ -124,6 +125,12 @@ class HTTPDigestAuth(AuthBase):
             
     @staticmethod
     def encode_to_bytes(data, encoding="latin-1"):
+        """
+        This function encodes input data to bytes using the specified
+        encoding (default is Latin-1). It returns the encoded data as bytes.
+
+        :rtype: bytes
+        """
         if type(data) == bytes:
             return data
         str_data = str(data)
@@ -251,6 +258,7 @@ class HTTPDigestAuth(AuthBase):
     def handle_401(self, r, **kwargs):
         """
         Takes the given response and tries digest-auth, if needed.
+
         :rtype: requests.Response
         """
 
