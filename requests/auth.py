@@ -122,6 +122,19 @@ class HTTPDigestAuth(AuthBase):
             self._thread_local.chal = {}
             self._thread_local.pos = None
             self._thread_local.num_401_calls = None
+            
+    @staticmethod
+    def encode_to_bytes(data, encoding="latin-1"):
+        """
+        This function encodes input data to bytes using the specified
+        encoding (default is Latin-1). It returns the encoded data as bytes.
+
+        :rtype: bytes
+        """
+        if type(data) == bytes:
+            return data
+        str_data = str(data)
+        return str_data.encode(encoding)
 
     def build_digest_header(self, method, url):
         """
@@ -186,7 +199,11 @@ class HTTPDigestAuth(AuthBase):
         if p_parsed.query:
             path += f"?{p_parsed.query}"
 
-        A1 = f"{self.username}:{realm}:{self.password}"
+        username = self.encode_to_bytes(self.username)
+        realm = self.encode_to_bytes(realm)
+        password = self.encode_to_bytes(self.password)
+
+        A1 = b"%s:%s:%s" % (username, realm, password)
         A2 = f"{method}:{path}"
 
         HA1 = hash_utf8(A1)
